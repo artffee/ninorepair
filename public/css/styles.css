@@ -1806,7 +1806,7 @@ h1, h2, h3, h4 {
   body { font-size: 16px; }
   .hdr { padding-top: 10px; }
   .hdr-in { height: 60px; padding-inline: 12px; }
-  .brand-txt { font-size: 19px; }
+  .brand-txt { font-size: 18px; }
   .brand-mark { width: 34px; height: 34px; border-radius: 11px; }
   .hdr-cta .btn { padding: 10px 14px; font-size: 13.5px; }
   .hero { padding-top: 28px; }
@@ -1833,10 +1833,12 @@ h1, h2, h3, h4 {
   .chat-fab svg { width: 23px; height: 23px; }
 }
 
-/* Below 400px the wordmark, the phone number and the burger cannot share a row
+/* Below 380px the wordmark, the phone number and the burger cannot share a row
    without pushing the burger — the only way into the nav — off screen. The mark
-   alone carries the brand at this width. */
-@media (max-width: 400px) {
+   alone carries the brand at this width. (This was 400px for the previous
+   condensed wordmark; Bricolage at 18px needs less room, and 390px phones were
+   losing the name for no reason.) */
+@media (max-width: 380px) {
   .brand-txt { display: none; }
   .hdr-in { gap: 8px; }
   .hdr-cta .btn { padding: 10px 13px; font-size: 13px; }
