@@ -1,0 +1,10 @@
+# Local lead capture — never leaves the dev machine.
+data/
+.env
+*.log
+
+# A separate Frequency Reader project shares this directory and deploys itself
+# from site/ (see its own .vercel link). None of it belongs in this bundle.
+frequency-reader-site.html
+build.mjs
+site/

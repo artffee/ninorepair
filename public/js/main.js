@@ -112,8 +112,66 @@
   const go     = $('#est-go');
 
   const MAX_FILES = 5;
-  const MAX_BYTES = 8 * 1024 * 1024;
+  const MAX_BYTES = 25 * 1024 * 1024;   // raw pick — it gets downscaled below
   const OK_TYPES  = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+
+  /* Photos are downscaled in the browser before upload. Three reasons, in order
+   * of how much they matter: the serverless host rejects a request body over
+   * 4.5 MB outright, a 12MP photo costs the same tokens as a 2MP one because the
+   * model resizes it anyway, and a phone on hotel wifi should not be pushing
+   * 40 MB uphill. 1600px is well above what the model can use. */
+  const MAX_EDGE = 1600;
+  const JPEG_Q = 0.82;
+  const MAX_TOTAL = 4 * 1024 * 1024;
+
+  const loadImage = (file) =>
+    new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        resolve(img);
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        reject(new Error('decode failed'));
+      };
+      img.src = url;
+    });
+
+  /** Returns a smaller JPEG, or the original file if shrinking wouldn't help. */
+  async function shrink(file) {
+    if (!/^image\/(jpeg|png|webp)$/.test(file.type)) return file;
+
+    let img;
+    try {
+      // Decoding through an <img> rather than createImageBitmap so the browser
+      // applies EXIF orientation for us — otherwise a photo taken sideways
+      // reaches the model sideways.
+      img = await loadImage(file);
+    } catch {
+      return file;
+    }
+
+    const scale = Math.min(1, MAX_EDGE / Math.max(img.naturalWidth, img.naturalHeight));
+    const w = Math.round(img.naturalWidth * scale);
+    const h = Math.round(img.naturalHeight * scale);
+
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(img, 0, 0, w, h);
+
+    const blob = await new Promise((r) => canvas.toBlob(r, 'image/jpeg', JPEG_Q));
+    if (!blob || blob.size >= file.size) return file;
+
+    return new File([blob], `${file.name.replace(/\.[^.]+$/, '')}.jpg`, {
+      type: 'image/jpeg',
+      lastModified: file.lastModified,
+    });
+  }
 
   /** Files live here rather than in the input, so individual ones can be removed. */
   let picked = [];
@@ -149,7 +207,7 @@
     Array.from(fileList).forEach((file) => {
       if (picked.length >= MAX_FILES) return;
       if (!OK_TYPES.includes(file.type)) return rejected.push(`${file.name} — not a JPG, PNG, WEBP or GIF`);
-      if (file.size > MAX_BYTES) return rejected.push(`${file.name} — over 8MB`);
+      if (file.size > MAX_BYTES) return rejected.push(`${file.name} — over 25MB`);
       // Same photo picked twice in two trips through the file dialog.
       if (picked.some((p) => p.name === file.name && p.size === file.size)) return;
       picked.push(file);
@@ -291,17 +349,29 @@
       return;
     }
 
-    const body = new FormData();
-    picked.forEach((file) => body.append('photos', file, file.name));
-    body.append('description', description);
-    body.append('city', $('#city').value.trim());
-    body.append('propertyType', $('#ptype').value);
-    body.append('urgency', $('#urgency').value);
-
     busy(go, true);
     showWorking();
 
     try {
+      const prepared = [];
+      for (const file of picked) prepared.push(await shrink(file));
+
+      const total = prepared.reduce((sum, f) => sum + f.size, 0);
+      if (total > MAX_TOTAL) {
+        showError(
+          'Those photos are still too large together after resizing. Send two or three instead, ' +
+            `or text them straight to ${PHONE}.`,
+        );
+        return;
+      }
+
+      const body = new FormData();
+      prepared.forEach((file) => body.append('photos', file, file.name));
+      body.append('description', description);
+      body.append('city', $('#city').value.trim());
+      body.append('propertyType', $('#ptype').value);
+      body.append('urgency', $('#urgency').value);
+
       const res = await fetch('/api/estimate', { method: 'POST', body });
       const data = await res.json().catch(() => ({}));
 

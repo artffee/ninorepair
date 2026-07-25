@@ -1,6 +1,15 @@
 node_modules/
-.env
 data/
 *.log
 .DS_Store
 Thumbs.db
+
+# Secrets. .env.example is tracked on purpose — it documents what is required,
+# so the ignore rules stay narrow rather than the CLI's blanket .env*
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Vercel CLI project link and its OIDC token
+.vercel
