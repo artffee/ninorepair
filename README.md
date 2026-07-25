@@ -11,7 +11,7 @@ framework, no client dependencies — the front end is three files.
 ```
 public/
   index.html      markup, schema.org business data, Google Fonts
-  css/styles.css  the whole design system (49 KB)
+  css/styles.css  the whole design system (50 KB)
   js/main.js      header, nav, reveals, photo estimator, contact form
   js/agent.js     chat widget — SSE streaming, markdown-lite renderer
 server/
