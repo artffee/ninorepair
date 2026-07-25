@@ -1,0 +1,23 @@
+{
+  "name": "ninorepair",
+  "version": "1.0.0",
+  "private": true,
+  "description": "NinoRepair.com — handyman & short-term-rental support for the Greater Fort Lauderdale area, with a Gemini-powered assistant and photo-based estimator.",
+  "type": "module",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@google/genai": "^2.13.0",
+    "dotenv": "^17.2.3",
+    "express": "^4.21.2",
+    "multer": "^2.0.2",
+    "nodemailer": "^7.0.9",
+    "zod": "^3.25.76"
+  }
+}
