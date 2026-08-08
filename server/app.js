@@ -1,5 +1,6 @@
 import 'dotenv/config';
 
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -396,7 +397,24 @@ app.post(
         return;
       }
 
-      res.json({ estimate: parsedEstimate.data });
+      /* Short reference so the estimate on her screen, the email that lands in
+       * Nino's inbox, and any follow-up she sends are all the same job. */
+      const ref = `EST-${crypto.randomBytes(2).toString('hex').toUpperCase()}`;
+
+      // Awaited, not fire-and-forget: a serverless function is frozen the moment
+      // it responds, so anything started after res.json() would never send. A
+      // failed email must not cost her the estimate, so it swallows its errors.
+      await emailEstimate({
+        ref,
+        estimate: parsedEstimate.data,
+        description,
+        city,
+        propertyType,
+        urgency,
+        photos,
+      });
+
+      res.json({ estimate: parsedEstimate.data, ref });
     } catch (err) {
       console.error('[estimate]', err);
       res.status(502).json({
@@ -419,6 +437,9 @@ const LeadSchema = z.object({
   city: z.string().max(80).optional().or(z.literal('')),
   service: z.string().max(120).optional().or(z.literal('')),
   message: z.string().max(3000).optional().or(z.literal('')),
+  // Set when the lead comes from the estimator's follow-up form, so the email
+  // subject can point at the estimate already sitting in the inbox.
+  ref: z.string().max(24).optional().or(z.literal('')),
   // Honeypot: bots fill every field they find, humans never see this one.
   website: z.string().max(0).optional().or(z.literal('')),
 });
@@ -442,6 +463,82 @@ const LEAD_SINKS = [
   !SERVERLESS && 'data/leads.jsonl',
   mailer && `email to ${process.env.LEAD_TO || BUSINESS.email}`,
 ].filter(Boolean);
+
+const LEAD_TO = () => process.env.LEAD_TO || BUSINESS.email;
+const FROM = () => `"NinoRepair Website" <${process.env.SMTP_USER}>`;
+const usd = (n) => `$${Math.round(Number(n) || 0).toLocaleString('en-US')}`;
+const block = (title, items) =>
+  Array.isArray(items) && items.length
+    ? `${title}\n${items.map((s) => `  - ${s}`).join('\n')}\n`
+    : '';
+
+/**
+ * Every estimate is emailed to Nino with the photos attached, whether or not the
+ * customer goes on to leave her name. Without this an estimate that does not
+ * convert leaves no trace at all — he cannot follow up, and he cannot see what
+ * people are actually asking about.
+ *
+ * Declared as a function so the estimate route above can call it despite being
+ * defined earlier in the file; `mailer` is initialised by the time any request
+ * arrives. Never throws.
+ */
+async function emailEstimate({ ref, estimate: e, description, city, propertyType, urgency, photos }) {
+  if (!mailer) {
+    console.log(`[estimate] ${ref} not emailed — SMTP is not configured`);
+    return;
+  }
+
+  const priced = e.bucket === 'handyman' && Number(e.priceHigh) > 0;
+  const range = priced ? `${usd(e.priceLow)}–${usd(e.priceHigh)}` : `not priced (${e.bucket})`;
+  const context = [city && `City: ${city}`, propertyType && `Property: ${propertyType}`, urgency && `Timing: ${urgency}`]
+    .filter(Boolean)
+    .join(' · ');
+
+  const body = [
+    `Reference:  ${ref}`,
+    `Job:        ${e.jobTitle}`,
+    `Ballpark:   ${range}${priced ? `   on site: ${e.estimatedHours}` : ''}`,
+    `Confidence: ${e.confidence} — ${e.confidenceReason}`,
+    '',
+    'SHE WROTE',
+    description ? `  ${description}` : '  (no description)',
+    context ? `  ${context}` : '',
+    '',
+    'SUMMARY SHE WAS SHOWN',
+    `  ${e.summary}`,
+    '',
+    block('WHAT THE MODEL SAW', e.observations),
+    block('SCOPE', e.scope),
+    e.lineItems?.length
+      ? `LINE ITEMS\n${e.lineItems.map((li) => `  - ${li.label}: ${usd(li.low)}–${usd(li.high)}`).join('\n')}\n`
+      : '',
+    block('WATCH-OUTS', e.watchOuts),
+    block('PHOTOS THAT WOULD TIGHTEN IT', e.photoTips),
+    photos.length ? `${photos.length} photo(s) attached.` : 'No photos — priced from the description alone.',
+    '',
+    'No contact details yet. If she asks for a follow-up on the result card, a',
+    `separate "wants a call back" email arrives quoting ${ref}.`,
+  ]
+    .filter((line) => line !== '')
+    .join('\n');
+
+  try {
+    await mailer.sendMail({
+      from: FROM(),
+      to: LEAD_TO(),
+      subject: `[${ref}] ${e.jobTitle} — ${range}${city ? ` (${city})` : ''}`,
+      text: body,
+      attachments: photos.map((file, i) => ({
+        filename: file.originalname || `photo-${i + 1}.jpg`,
+        content: file.buffer,
+        contentType: file.mimetype,
+      })),
+    });
+    console.log(`[estimate] ${ref} emailed to ${LEAD_TO()} with ${photos.length} photo(s)`);
+  } catch (err) {
+    console.error(`[estimate] ${ref} email failed:`, err.message);
+  }
+}
 
 app.post(
   '/api/lead',
@@ -480,10 +577,12 @@ app.post(
     if (mailer) {
       try {
         await mailer.sendMail({
-          from: `"NinoRepair Website" <${process.env.SMTP_USER}>`,
-          to: process.env.LEAD_TO || BUSINESS.email,
+          from: FROM(),
+          to: LEAD_TO(),
           replyTo: lead.email || undefined,
-          subject: `New job request — ${lead.name}${lead.city ? ` (${lead.city})` : ''}`,
+          subject: lead.ref
+            ? `[${lead.ref}] Wants a call back — ${lead.name}${lead.city ? ` (${lead.city})` : ''}`
+            : `New job request — ${lead.name}${lead.city ? ` (${lead.city})` : ''}`,
           text: [
             `Name:    ${lead.name}`,
             `Phone:   ${lead.phone}`,

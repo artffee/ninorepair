@@ -275,7 +275,14 @@
     inspect:  { label: 'Needs a look',   cls: 'is-inspect' },
   };
 
-  function render(est) {
+  /* Held so the follow-up form on the result card can quote the job it belongs
+     to, and so Nino's two emails about the same customer line up. */
+  let lastRef = '';
+  let lastEstimate = null;
+
+  function render(est, ref) {
+    lastRef = ref || '';
+    lastEstimate = est;
     const bucket = BUCKETS[est.bucket] || BUCKETS.handyman;
     const priced = est.bucket === 'handyman' && Number(est.priceHigh) > 0;
 
@@ -328,16 +335,98 @@
                 <p class="res-fine">${esc(est.confidenceReason)}</p></div>`
            : ''}
 
+         <form class="res-lead" id="res-lead" novalidate>
+           <p class="res-lead-t">Want Nino to confirm this and book it?</p>
+           <div class="res-lead-row">
+             <input id="rl-name" type="text" placeholder="Your name" maxlength="120"
+                    autocomplete="name" aria-label="Your name" />
+             <input id="rl-phone" type="tel" placeholder="Phone" maxlength="40"
+                    autocomplete="tel" aria-label="Phone number" />
+             <button class="btn btn-amber" type="submit" id="rl-go">
+               <span class="btn-label">Send</span><span class="spin" aria-hidden="true"></span>
+             </button>
+           </div>
+           <p class="form-msg" id="rl-msg" role="status" aria-live="polite"></p>
+         </form>
+
          <div class="res-cta">
-           <a class="btn btn-amber" href="${PHONE_HREF}">Text these photos to Nino</a>
-           <a class="btn btn-outline" href="#contact">Book the visit</a>
+           <a class="btn btn-outline" href="${PHONE_HREF}">Or text the photos to Nino</a>
          </div>
          <p class="res-fine">
-           Ballpark from photos only. Final price is confirmed on site before any work starts.
+           ${lastRef ? `Reference ${esc(lastRef)} · ` : ''}Ballpark from photos only.
+           Final price is confirmed on site before any work starts.
          </p>
        </article>`;
 
+    $('#res-lead').addEventListener('submit', sendFollowUp);
     out.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'nearest' });
+  }
+
+  /* The estimate itself already reached Nino by email. This is the customer
+     asking him to act on it, so it goes through /api/lead — same validation,
+     same honeypot-free path, same durable-sink guarantee as the contact form. */
+  async function sendFollowUp(e) {
+    e.preventDefault();
+
+    const form = $('#res-lead');
+    const go = $('#rl-go');
+    const msg = $('#rl-msg');
+    const name = $('#rl-name').value.trim();
+    const phone = $('#rl-phone').value.trim();
+
+    const say = (text, kind) => {
+      msg.textContent = text;
+      msg.className = `form-msg${kind ? ` is-${kind}` : ''}`;
+    };
+
+    if (!name || phone.replace(/\D/g, '').length < 7) {
+      say('Name and a number he can text you back on, please.', 'bad');
+      return;
+    }
+
+    const est = lastEstimate || {};
+    const priced = est.bucket === 'handyman' && Number(est.priceHigh) > 0;
+    const range = priced ? `${money(est.priceLow)}–${money(est.priceHigh)}` : `not priced (${est.bucket})`;
+    const desc = $('#desc').value.trim();
+
+    busy(go, true);
+    say('Sending…');
+
+    try {
+      const res = await fetch('/api/lead', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name,
+          phone,
+          city: $('#city').value.trim(),
+          service: String(est.jobTitle || 'Photo estimate').slice(0, 120),
+          ref: lastRef,
+          message: [
+            `From the photo estimator${lastRef ? ` (${lastRef})` : ''}.`,
+            `Job: ${est.jobTitle || '—'} · Ballpark: ${range}`,
+            desc && `She described it as: ${desc}`,
+            'She asked for a call back to confirm and book.',
+          ]
+            .filter(Boolean)
+            .join('\n')
+            .slice(0, 3000),
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok || !data.ok) {
+        say(data.error || `That did not go through. Call or text ${PHONE}.`, 'bad');
+        return;
+      }
+
+      form.classList.add('is-sent');
+      say(`Got it, ${name.split(' ')[0]} — Nino has your estimate and will text you to confirm.`, 'ok');
+    } catch {
+      say(`Could not reach the server. Call or text ${PHONE} and it is handled.`, 'bad');
+    } finally {
+      busy(go, false);
+    }
   }
 
   form.addEventListener('submit', async (e) => {
@@ -379,7 +468,7 @@
         showError(data.error || `Something went wrong reading that. Text the photos to ${PHONE}.`);
         return;
       }
-      render(data.estimate);
+      render(data.estimate, data.ref);
     } catch {
       showError(`Could not reach the estimator — check your connection, or just text the photos to ${PHONE}.`);
     } finally {
