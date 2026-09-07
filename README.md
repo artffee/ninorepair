@@ -76,3 +76,13 @@ copy on the page and answers from the AI both come from it.
   boot, schema shape and the no-key path, but no live call has been made yet.
 - Prices in `knowledge.js` are Broward County market rates and want a seasonal
   review.
+
+## Image credits
+
+The homepage uses candid process photography for atmosphere, not as a claim of
+completed NinoRepair jobs:
+
+- Drywall fitting: [Antoni Shkraba / Pexels](https://www.pexels.com/photo/a-man-fixing-the-wall-4981812/)
+- Wall mounting: [Anete Lusina / Pexels](https://www.pexels.com/photo/faceless-man-putting-decoration-on-wall-while-using-hammer-4792530/)
+- Measuring: [Ksenia Chernaya / Pexels](https://www.pexels.com/photo/crop-man-measuring-wooden-board-in-room-5691673/)
+- Punch-list monster: adapted from the project owner’s existing A305X shop avatar.

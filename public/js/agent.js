@@ -25,7 +25,7 @@
   const MAX_TURNS  = 24;
 
   const GREETING =
-    "Hey — NinoRepair front desk. Tell me what needs fixing and I'll give you a " +
+    "Hey — I'm Nino's digital front desk. Tell me what needs fixing and I'll give you a " +
     'ballpark on the spot. Photos get you a tighter number: use the estimator on ' +
     `this page, or text them to **${PHONE}**.`;
 
