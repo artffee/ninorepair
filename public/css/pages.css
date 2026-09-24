@@ -1,0 +1,326 @@
+/* ══════════════════════════════════════════════════════════════════════════════
+   NinoRepair — service, city and host pages
+   Loaded after styles.css. Uses its tokens only; adds nothing to the homepage.
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+.pg-hero {
+  position: relative;
+  overflow: hidden;
+  padding-block: clamp(28px, 4vw, 56px) clamp(56px, 7vw, 96px);
+}
+.pg-hero .wrap { position: relative; }
+
+.crumbs {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  margin-bottom: clamp(22px, 3vw, 36px);
+  font-size: 14px; color: var(--ink-3);
+}
+.crumbs a { color: var(--ink-2); font-weight: 600; }
+.crumbs a:hover { color: var(--blue); }
+.crumbs [aria-current] { color: var(--ink-3); }
+.crumb-sep { color: var(--line-3); }
+
+.pg-h1 {
+  margin-top: 18px;
+  font-size: clamp(42px, 6.8vw, 88px);
+  line-height: .98;
+  letter-spacing: -.042em;
+  font-weight: 800;
+}
+.pg-h1 span { display: block; }
+.js .pg-h1.in span { animation: rise .8s var(--ease) backwards; }
+.js .pg-h1.in span:nth-child(2) { animation-delay: .08s; }
+.js .pg-h1.in span:nth-child(3) { animation-delay: .16s; }
+
+.pg-hero .hero-btns { align-items: center; }
+.pg-price {
+  padding: 10px 16px;
+  border-radius: var(--r-pill);
+  background: var(--blue-50);
+  color: var(--navy);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* Sections */
+.pg-sec { padding-block: clamp(56px, 7vw, 96px); }
+.pg-sec-alt { background: var(--card-2); border-block: 1px solid var(--line); }
+.pg-sec .sec-head { margin-bottom: 0; }
+.pg-sec .sec-head h2, .pg-h2 { font-size: clamp(30px, 4vw, 48px); }
+
+.pg-split {
+  display: grid;
+  grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr);
+  gap: clamp(28px, 5vw, 72px);
+  align-items: start;
+}
+.pg-two {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: clamp(28px, 5vw, 64px);
+  align-items: start;
+}
+.link-grid { margin-top: clamp(28px, 3.5vw, 44px); }
+
+/* Included work: a ruled list, not a card grid */
+.inc-list { border-top: 1px solid var(--line); }
+.inc-list li {
+  display: grid;
+  grid-template-columns: minmax(0, 15ch) minmax(0, 1fr);
+  gap: 8px 28px;
+  padding: 22px 0;
+  border-bottom: 1px solid var(--line);
+}
+.inc-list h3 { font-size: 19px; letter-spacing: -.02em; line-height: 1.2; }
+.inc-list p { color: var(--ink-2); line-height: 1.6; }
+
+.plain-list { margin-top: 22px; display: flex; flex-direction: column; gap: 12px; }
+.plain-list li {
+  position: relative;
+  padding-left: 22px;
+  color: var(--ink-2);
+  line-height: 1.55;
+}
+.plain-list li::before {
+  content: "";
+  position: absolute; left: 0; top: .6em;
+  width: 8px; height: 8px;
+  border-radius: 2px;
+  background: var(--blue);
+}
+.pg-note { margin-top: 24px; color: var(--ink-3); font-size: 15px; line-height: 1.6; max-width: 52ch; }
+.pg-note a, .scope-card a { color: var(--blue); font-weight: 600; box-shadow: inset 0 -.5em 0 var(--blue-50); }
+
+/* The one dark element per page: the Florida scope note */
+.scope-card {
+  padding: clamp(24px, 3vw, 34px);
+  border-radius: var(--r-lg);
+  background: var(--navy);
+  color: #fff;
+  box-shadow: var(--sh-3);
+}
+.scope-card .scope-k { color: var(--blue-300); font-size: 12px; margin-bottom: 14px; }
+.scope-card p { line-height: 1.65; color: rgba(255, 255, 255, .88); }
+.scope-card a { display: inline-block; margin-top: 18px; color: #fff; box-shadow: inset 0 -2px 0 var(--blue-300); }
+
+/* FAQ */
+.faq { border-top: 1px solid var(--line); }
+.faq-q { border-bottom: 1px solid var(--line); }
+.faq-q summary {
+  display: flex; justify-content: space-between; align-items: center; gap: 20px;
+  padding: 20px 0;
+  cursor: pointer;
+  list-style: none;
+  font-family: var(--f-display);
+  font-size: clamp(17px, 1.6vw, 20px);
+  font-weight: 600;
+  letter-spacing: -.02em;
+  color: var(--ink);
+}
+.faq-q summary::-webkit-details-marker { display: none; }
+.faq-q summary::after {
+  content: "+";
+  flex: none;
+  width: 32px; height: 32px;
+  display: grid; place-items: center;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  font-size: 20px; font-weight: 500;
+  color: var(--blue);
+  transition: transform .25s var(--ease);
+}
+.faq-q[open] summary::after { transform: rotate(45deg); }
+.faq-q p { padding: 0 44px 22px 0; color: var(--ink-2); line-height: 1.65; max-width: 64ch; }
+
+/* Links out to services / cities */
+.link-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr));
+  gap: 10px;
+}
+.link-grid a {
+  display: flex; flex-direction: column; gap: 4px;
+  height: 100%;
+  padding: 18px 20px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  transition: border-color .2s, transform .2s var(--ease);
+}
+.link-grid a:hover { border-color: var(--blue); transform: translateY(-2px); }
+.link-grid b { font-family: var(--f-display); font-size: 17px; font-weight: 700; letter-spacing: -.02em; color: var(--ink); }
+.link-grid span { font-size: 14px; color: var(--ink-3); }
+
+.nearby {
+  padding-block: 0 clamp(40px, 5vw, 64px);
+  display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: baseline;
+  color: var(--ink-3);
+}
+.nearby .mono { font-size: 12px; }
+.nearby a { color: var(--blue); font-weight: 600; }
+
+/* Host plans */
+.plans {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: clamp(28px, 3.5vw, 44px);
+}
+.plan {
+  padding: 28px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+}
+.plan.is-pick { border: 2px solid var(--blue); box-shadow: var(--sh-2); }
+.plan h3 { font-size: 22px; }
+.plan-amt { margin: 10px 0 18px; font-family: var(--f-display); font-size: 44px; font-weight: 800; letter-spacing: -.04em; color: var(--navy); }
+.plan-amt span { font-size: 16px; font-weight: 600; color: var(--ink-3); letter-spacing: 0; }
+.plan li { padding: 8px 0; border-top: 1px solid var(--line); color: var(--ink-2); font-size: 15px; }
+
+@media (max-width: 900px) {
+  .pg-split, .pg-two, .plans { grid-template-columns: minmax(0, 1fr); }
+  .inc-list li { grid-template-columns: minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .js .pg-h1.in span { animation: none; }
+  .link-grid a, .faq-q summary::after { transition: none; }
+}
+
+/* ══════════ FUN LAYER ══════════
+   One signature element per page: the honey-do notepad. Everything else stays quiet. */
+
+.pg-hero-in {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(300px, .8fr);
+  gap: clamp(32px, 5vw, 72px);
+  align-items: center;
+}
+
+.pad {
+  --pad-line: #C9DAF8;
+  position: relative;
+  padding: 40px 28px 26px 58px;
+  background:
+    linear-gradient(90deg, transparent 42px, #F3A9A9 42px, #F3A9A9 44px, transparent 44px),
+    repeating-linear-gradient(#fff 0 39px, var(--pad-line) 39px 40px);
+  background-color: #fff;
+  border: 1px solid var(--line);
+  border-radius: 6px 6px 18px 18px;
+  box-shadow: var(--sh-3);
+  rotate: 1.6deg;
+  transition: rotate .5s var(--ease);
+}
+.pad:hover { rotate: 0deg; }
+.pad-clip {
+  position: absolute; top: -14px; left: 50%; translate: -50% 0;
+  width: 108px; height: 28px;
+  border-radius: 8px;
+  background: var(--navy);
+  box-shadow: inset 0 -4px 0 rgba(255, 255, 255, .12);
+}
+.pad-title {
+  font-family: 'Caveat', 'Comic Sans MS', cursive;
+  font-size: 30px; font-weight: 700; line-height: 40px;
+  color: var(--navy);
+}
+.pad-list li { line-height: 40px; }
+.pad-item {
+  display: flex; align-items: center; gap: 12px;
+  width: 100%;
+  padding: 0; border: 0; background: none;
+  text-align: left;
+  font-family: 'Caveat', 'Comic Sans MS', cursive;
+  font-size: clamp(22px, 2vw, 25px); font-weight: 600;
+  color: var(--gray-700);
+  line-height: 40px;
+}
+.pad-box {
+  flex: none;
+  width: 20px; height: 20px;
+  border: 2px solid var(--navy);
+  border-radius: 4px;
+  position: relative;
+  transition: background .2s;
+}
+.pad-box::after {
+  content: "";
+  position: absolute; left: 5px; top: 0;
+  width: 6px; height: 12px;
+  border: solid #fff; border-width: 0 3px 3px 0;
+  rotate: 45deg; scale: 0;
+  transition: scale .25s var(--ease);
+}
+.pad-t { position: relative; display: inline-block; }
+.pad-strike {
+  position: absolute; left: -4px; right: -4px; top: 50%;
+  width: calc(100% + 8px); height: 14px;
+  translate: 0 -50%;
+  overflow: visible;
+}
+.pad-strike path {
+  fill: none; stroke: var(--blue); stroke-width: 4; stroke-linecap: round;
+  stroke-dasharray: 320; stroke-dashoffset: 320;
+  transition: stroke-dashoffset .45s var(--ease);
+  vector-effect: non-scaling-stroke;
+}
+.pad-item[aria-pressed="true"] .pad-box { background: var(--blue); border-color: var(--blue); }
+.pad-item[aria-pressed="true"] .pad-box::after { scale: 1; }
+.pad-item[aria-pressed="true"] .pad-strike path { stroke-dashoffset: 0; }
+.pad-item[aria-pressed="true"] .pad-t { color: var(--ink-3); }
+.pad-item:hover .pad-box { background: var(--blue-50); }
+
+.pad-hint { margin-top: 14px; font-size: 13.5px; color: var(--ink-3); line-height: 1.5; }
+.pad-hint a { color: var(--blue); font-weight: 600; }
+
+.pad-stamp {
+  position: absolute; right: 18px; bottom: 58px;
+  padding: 8px 16px 6px;
+  border: 4px solid var(--blue);
+  border-radius: 10px;
+  color: var(--blue);
+  text-align: center;
+  line-height: 1;
+  rotate: -12deg; scale: 2.4;
+  opacity: 0;
+  pointer-events: none;
+  mix-blend-mode: multiply;
+}
+.pad-stamp span { display: block; font-family: var(--f-display); font-size: 30px; font-weight: 800; letter-spacing: .02em; }
+.pad-stamp small { display: block; margin-top: 2px; font-family: 'Caveat', cursive; font-size: 20px; font-weight: 700; }
+.pad.is-done .pad-stamp { animation: stamp .45s cubic-bezier(.2, 1.6, .4, 1) forwards; }
+@keyframes stamp { to { opacity: .92; scale: 1; } }
+.pad.is-done { animation: thud .35s .12s ease-out; }
+@keyframes thud { 40% { translate: 0 3px; } }
+.pad-done { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+/* The quip: a big, plain-spoken line between hero and content */
+.quip-band { padding-block: clamp(36px, 5vw, 64px); background: var(--navy); }
+.quip {
+  max-width: 34ch;
+  font-family: var(--f-display);
+  font-size: clamp(24px, 3vw, 38px);
+  font-weight: 600;
+  line-height: 1.22;
+  letter-spacing: -.025em;
+  color: #fff;
+  text-wrap: balance;
+}
+.quip::before {
+  content: "“";
+  display: block;
+  height: .5em;
+  font-size: 2.4em;
+  line-height: .9;
+  color: var(--blue-300);
+}
+
+@media (max-width: 900px) {
+  .pg-hero-in { grid-template-columns: minmax(0, 1fr); }
+  .pad { rotate: 0deg; margin-top: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pad, .pad-box, .pad-box::after, .pad-strike path { transition: none; }
+  .pad.is-done, .pad.is-done .pad-stamp { animation: none; }
+  .pad.is-done .pad-stamp { opacity: .92; scale: 1; }
+}
