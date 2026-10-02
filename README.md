@@ -33,6 +33,40 @@ and the UI falls back to "call or text Nino" rather than breaking.
 
 `npm run dev` restarts on file changes.
 
+## Pricing checks
+
+Run `npm test` (or `npm run check:pricing`) before committing pricing edits.
+The deterministic Node test suite needs no API key, network or extra packages.
+It audits every service page and city service grid, checks visible FAQs against
+JSON-LD, and compares job-specific starting prices with `PRICE_BOOK` in
+`server/knowledge.js`. Mutation cases verify that the original TV/assembly
+mix-up, conflicting metadata, and omitted visit minimums fail the check.
+
+Keep prices attached to the work they describe:
+
+| Service page | Advertised starting scope |
+|---|---|
+| Drywall & painting | Small drywall patches under 6 inches: $130 |
+| TV mounting & assembly | 32–55 inch TV into studs: $145; standard furniture assembly: $65, separately labeled |
+| Doors & locks | Lockset/deadbolt swap: $85; smart lock installation/setup: $130 |
+| Pool cage rescreening | $45 per panel, with a $185 minimum visit |
+| Pressure washing & hurricane prep | Two-car driveway: $180; single-story gutter cleaning: $175 |
+| Tile, grout & grab bars | Grab bars: $95 each; standard shower regrouting: $420 |
+
+These scopes were audited against the detailed service FAQs and the price book
+from main commit `133940fc2d83d401ff962de93daac24a506ce7ef`. The price book
+confirms the TV FAQ and distinguishes gutter cleaning from pressure washing,
+and backsplash caulking from grab bars. No price-book rates were changed.
+When rates change, update that source, the page copy/metadata/JSON-LD and all
+city grids together. Extend the test's scope assertions for new services.
+
+Mobile verification for this audit: Chromium at 320, 375 and 430 CSS pixels,
+all six service pages and all nine city pages (45 route/viewport checks).
+Price badges and grid links fit without horizontal overflow or clipped text;
+mobile menus and FAQs open correctly, and the chat button clears the quick-action
+dock. Representative TV, pool-minimum and Fort Lauderdale layouts were visually
+inspected. No browser errors were reported.
+
 ## API
 
 | Route | What it does |

@@ -318,6 +318,8 @@
 @media (max-width: 900px) {
   .pg-hero-in { grid-template-columns: minmax(0, 1fr); }
   .pad { rotate: 0deg; margin-top: 12px; }
+  /* Leave the quick-action links tappable, including the two-line 320px dock. */
+  .chat-fab { bottom: calc(max(10px, env(safe-area-inset-bottom)) + 82px); }
 }
 @media (prefers-reduced-motion: reduce) {
   .pad, .pad-box, .pad-box::after, .pad-strike path { transition: none; }
