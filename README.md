@@ -33,6 +33,39 @@ and the UI falls back to "call or text Nino" rather than breaking.
 
 `npm run dev` restarts on file changes.
 
+## Pricing checks
+
+Run `npm test` (or `npm run check:pricing`) before committing pricing edits.
+The deterministic Node test suite needs no API key, network or extra packages.
+It audits every service page, city service grid and 404 recovery grid, checks visible FAQs against
+JSON-LD, and compares job-specific starting prices with `PRICE_BOOK` in
+`server/knowledge.js`. Mutation cases verify that the original TV/assembly
+mix-up, conflicting metadata, omitted visit minimums and lost diagnostic-fee waivers fail the check. Host retainer rates are also checked against the price book.
+
+Keep prices attached to the work they describe:
+
+| Service page | Advertised starting scope |
+|---|---|
+| Drywall & painting | Small drywall patches under 6 inches: $130 |
+| TV mounting & assembly | 32–55 inch TV into studs: $145; standard furniture assembly: $65, separately labeled |
+| Doors & locks | Lockset/deadbolt swap: $85; smart lock installation/setup: $130 |
+| Pool cage rescreening | $45 per panel, with a $185 minimum visit |
+| Pressure washing & hurricane prep | Two-car driveway: $180; single-story gutter cleaning: $175 |
+| Tile, grout & grab bars | Grab bars: $95 each; standard shower regrouting: $420 |
+
+These scopes were audited against the detailed service FAQs and the price book
+from main commit `133940fc2d83d401ff962de93daac24a506ce7ef`. The price book
+confirms the TV FAQ and distinguishes gutter cleaning from pressure washing,
+and backsplash caulking from grab bars. No price-book rates were changed.
+When rates change, update that source, the page copy/metadata/JSON-LD and all
+city and 404 grids together. Extend the test's scope assertions for new services.
+
+The follow-up review adds minimum-charge, waived diagnostic-fee, materials and
+access-surcharge explanations to all six service FAQs and their JSON-LD copies.
+The chat/dock spacing rule now lives in the shared stylesheet so it also applies
+to the homepage. See [the verification record](docs/pricing-verification.md) for
+current automated, responsive, inquiry-flow and production-access results.
+
 ## API
 
 | Route | What it does |
