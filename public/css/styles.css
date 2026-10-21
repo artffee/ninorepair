@@ -1822,6 +1822,8 @@ h1, h2, h3, h4 {
 }
 
 @media (max-width: 900px) {
+  /* Keep chat above the quick-action dock on the homepage and inner pages. */
+  .chat-fab { bottom: calc(max(10px, env(safe-area-inset-bottom)) + 82px); }
   .nav { display: none; }
   .hide-sm { display: none; }
   .burger { display: grid; }

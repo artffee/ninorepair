@@ -37,10 +37,10 @@ and the UI falls back to "call or text Nino" rather than breaking.
 
 Run `npm test` (or `npm run check:pricing`) before committing pricing edits.
 The deterministic Node test suite needs no API key, network or extra packages.
-It audits every service page and city service grid, checks visible FAQs against
+It audits every service page, city service grid and 404 recovery grid, checks visible FAQs against
 JSON-LD, and compares job-specific starting prices with `PRICE_BOOK` in
 `server/knowledge.js`. Mutation cases verify that the original TV/assembly
-mix-up, conflicting metadata, and omitted visit minimums fail the check.
+mix-up, conflicting metadata, omitted visit minimums and lost diagnostic-fee waivers fail the check. Host retainer rates are also checked against the price book.
 
 Keep prices attached to the work they describe:
 
@@ -58,14 +58,13 @@ from main commit `133940fc2d83d401ff962de93daac24a506ce7ef`. The price book
 confirms the TV FAQ and distinguishes gutter cleaning from pressure washing,
 and backsplash caulking from grab bars. No price-book rates were changed.
 When rates change, update that source, the page copy/metadata/JSON-LD and all
-city grids together. Extend the test's scope assertions for new services.
+city and 404 grids together. Extend the test's scope assertions for new services.
 
-Mobile verification for this audit: Chromium at 320, 375 and 430 CSS pixels,
-all six service pages and all nine city pages (45 route/viewport checks).
-Price badges and grid links fit without horizontal overflow or clipped text;
-mobile menus and FAQs open correctly, and the chat button clears the quick-action
-dock. Representative TV, pool-minimum and Fort Lauderdale layouts were visually
-inspected. No browser errors were reported.
+The follow-up review adds minimum-charge, waived diagnostic-fee, materials and
+access-surcharge explanations to all six service FAQs and their JSON-LD copies.
+The chat/dock spacing rule now lives in the shared stylesheet so it also applies
+to the homepage. See [the verification record](docs/pricing-verification.md) for
+current automated, responsive, inquiry-flow and production-access results.
 
 ## API
 

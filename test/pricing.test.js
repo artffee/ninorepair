@@ -44,6 +44,20 @@ const regrout = price('Regrout a standard shower');
 const caulk = price('Shower re-caulk');
 const backsplash = price('Backsplash caulk');
 const tile = price('Replace cracked floor tiles');
+const hourly = price('Standard labor rate');
+const trip = price('Trip/diagnostic visit');
+const access = dollars(PRICE_BOOK.match(/Harbor Beach, Hillsboro\): add[^\n]+/)[0])[0];
+const essential = dollars(PRICE_BOOK.split('\n').find(line => line.includes('Essential —')))[0];
+const pro = dollars(PRICE_BOOK.split('\n').find(line => line.includes('Pro —')))[0];
+const minimumQuestion = 'How do minimum charges and materials work?';
+const minimumClaims = [
+  'per-panel or per-opening rates are subject to any stated visit minimum',
+  `Hourly work is ${hourly}/hour with a one-hour minimum`,
+  `The ${trip} trip/diagnostic fee is waived when work is performed on the same visit`,
+  'Materials are billed at cost + 15% unless you supply them',
+  `add a ${access} building-access surcharge`,
+  'Nino confirms the scope and final price before work begins',
+];
 
 // These are scope assertions, not just a bag of allowed numbers: $65 may be
 // correct for assembly on the TV page but must never label TV mounting itself.
@@ -113,6 +127,9 @@ function checkService(html, contract) {
     assert.ok(answer, `Missing pricing FAQ: ${question}`);
     claims(answer, expected, question);
   }
+  const minimumAnswer = visibleFAQs.find(q => q.question === minimumQuestion)?.answer;
+  assert.ok(minimumAnswer, 'Missing minimum-charge and materials explanation');
+  claims(minimumAnswer, minimumClaims, minimumQuestion);
 }
 
 function checkCity(html) {
@@ -149,6 +166,34 @@ test('city audit includes all existing city pages', () => assert.ok(cities.lengt
 for (const city of cities) {
   test(`${city}: service grid keeps starting prices and scopes consistent`, () => checkCity(read(`public/handyman/${city}/index.html`)));
 }
+test('404 recovery grid also matches the price book and includes visit minimums', () => checkCity(read('public/404.html')));
+test('all service-price link grids are covered, including future pages', () => {
+  function visit(path) {
+    return readdirSync(new URL(path, root), { withFileTypes: true }).flatMap(entry => {
+      const name = `${path}/${entry.name}`;
+      return entry.isDirectory() ? visit(name) : name.endsWith('.html') ? [name] : [];
+    });
+  }
+  for (const path of visit('public')) {
+    const html = read(path);
+    if (/<ul\b[^>]*class="[^"]*\blink-grid\b[^\"]*"[^>]*>[\s\S]*?<a\b[^>]*href="\/services\//.test(html)) {
+      checkCity(html);
+    }
+  }
+});
+test('host retainers and advertised trip fee agree with the price book', () => {
+  const host = read('public/airbnb-property-care/index.html');
+  const plans = [...host.matchAll(/<p class="plan-amt">([\s\S]*?)<\/p>/g)].map(m => text(m[1]));
+  assert.deepEqual(plans, [`${essential}/mo`, `${pro}/mo`, 'Custom']);
+  const faqCopies = [...host.matchAll(/Essential \(\$\d+\/mo\)[^<\n]+/g)];
+  assert.equal(faqCopies.length, 2);
+  for (const [faq] of faqCopies) assert.deepEqual(dollars(faq), [essential, pro]);
+  for (const city of cities) {
+    const html = read(`public/handyman/${city}/index.html`);
+    assert.equal(html.split(`The ${trip} trip fee is waived when the work gets done on the same visit.`).length - 1, 2);
+    assert.match(html, new RegExp(`Retainers from \\${essential}/mo`));
+  }
+});
 test('furniture assembly city links have a real destination', () => {
   assert.match(read('public/services/tv-mounting/index.html'), /id="furniture-assembly"/);
 });
@@ -181,4 +226,12 @@ test('reject regression: city TV rate uses assembly price', () => {
 test('reject regression: city combines TV mounting and assembly under one rate', () => {
   const html = read('public/handyman/fort-lauderdale/index.html');
   assert.throws(() => checkCity(html.replace('<b>TV Mounting</b>', '<b>TV Mounting &amp; Assembly</b>')), assert.AssertionError);
+});
+test('reject regression: 404 hides pool visit minimum', () => {
+  const html = read('public/404.html');
+  assert.throws(() => checkCity(html.replace(` · ${panelMinimum} minimum visit`, '')), assert.AssertionError);
+});
+test('reject regression: both minimum-charge FAQ copies lose the trip waiver', () => {
+  const html = read('public/services/tv-mounting/index.html');
+  assert.throws(() => checkService(html.replaceAll('is waived when work is performed on the same visit', 'is always added'), contracts['tv-mounting']), assert.AssertionError);
 });
