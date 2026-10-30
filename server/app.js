@@ -404,7 +404,7 @@ app.post(
       // Awaited, not fire-and-forget: a serverless function is frozen the moment
       // it responds, so anything started after res.json() would never send. A
       // failed email must not cost her the estimate, so it swallows its errors.
-      await emailEstimate({
+      const delivery = await emailEstimate({
         ref,
         estimate: parsedEstimate.data,
         description,
@@ -414,7 +414,7 @@ app.post(
         photos,
       });
 
-      res.json({ estimate: parsedEstimate.data, ref });
+      res.json({ estimate: parsedEstimate.data, ref, delivery });
     } catch (err) {
       console.error('[estimate]', err);
       res.status(502).json({
@@ -485,7 +485,7 @@ const block = (title, items) =>
 async function emailEstimate({ ref, estimate: e, description, city, propertyType, urgency, photos }) {
   if (!mailer) {
     console.log(`[estimate] ${ref} not emailed — SMTP is not configured`);
-    return;
+    return 'unavailable';
   }
 
   const priced = e.bucket === 'handyman' && Number(e.priceHigh) > 0;
@@ -523,7 +523,7 @@ async function emailEstimate({ ref, estimate: e, description, city, propertyType
     .join('\n');
 
   try {
-    await mailer.sendMail({
+    const receipt = await mailer.sendMail({
       from: FROM(),
       to: LEAD_TO(),
       subject: `[${ref}] ${e.jobTitle} — ${range}${city ? ` (${city})` : ''}`,
@@ -534,9 +534,12 @@ async function emailEstimate({ ref, estimate: e, description, city, propertyType
         contentType: file.mimetype,
       })),
     });
+    if (!receipt.accepted?.length) return 'failed';
     console.log(`[estimate] ${ref} emailed to ${LEAD_TO()} with ${photos.length} photo(s)`);
+    return 'accepted';
   } catch (err) {
     console.error(`[estimate] ${ref} email failed:`, err.message);
+    return 'failed';
   }
 }
 
@@ -619,6 +622,7 @@ app.get('/api/health', (_req, res) => {
   res.json({
     ok: true,
     ai: Boolean(ai),
+    contactDelivery: Boolean(mailer) || !SERVERLESS,
     provider: 'google',
     chatModel: CHAT_MODEL,
     visionModel: VISION_MODEL,
