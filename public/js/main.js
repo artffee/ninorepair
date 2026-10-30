@@ -280,7 +280,7 @@
   let lastRef = '';
   let lastEstimate = null;
 
-  function render(est, ref) {
+  function render(est, ref, delivery) {
     lastRef = ref || '';
     lastEstimate = est;
     const bucket = BUCKETS[est.bucket] || BUCKETS.handyman;
@@ -319,6 +319,7 @@
 
          <h3 class="res-title">${esc(est.jobTitle || 'Your job')}</h3>
          ${priceRow}
+         <p class="res-fine" role="status">${delivery === 'accepted' ? 'Your estimate was accepted by the email service for delivery to Nino.' : 'This estimate has not been sent to Nino. Text or call him to discuss the job.'}</p>
          ${est.summary ? `<p class="res-summary">${esc(est.summary)}</p>` : ''}
 
          ${items
@@ -468,7 +469,7 @@
         showError(data.error || `Something went wrong reading that. Text the photos to ${PHONE}.`);
         return;
       }
-      render(data.estimate, data.ref);
+      render(data.estimate, data.ref, data.delivery);
     } catch {
       showError(`Could not reach the estimator — check your connection, or just text the photos to ${PHONE}.`);
     } finally {

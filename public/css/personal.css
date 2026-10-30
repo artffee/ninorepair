@@ -912,7 +912,7 @@ body {
 }
 
 /* Links from the homepage into the service, city and host pages */
-.svc-more { display: inline-block; margin-top: 14px; margin-right: 14px; font-size: 14.5px; font-weight: 700; color: var(--blue, #2563EB); }
+.svc-more { display: inline-flex; align-items: center; min-height: 44px; margin-top: 14px; margin-right: 14px; font-size: 14.5px; font-weight: 700; color: var(--blue, #2563EB); }
 .svc-more:hover { text-decoration: underline; text-underline-offset: 3px; }
 .svc-more-c { display: block; margin: 14px auto 0; text-align: center; }
 .chips a { color: inherit; }
