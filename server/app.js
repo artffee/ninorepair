@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 
 import { ApiError, GoogleGenAI } from '@google/genai';
 import express from 'express';
+import { quotePilot } from './quote-pilot.js';
 import multer from 'multer';
 import nodemailer from 'nodemailer';
 // zod/v4 (shipped inside zod 3.25) for z.toJSONSchema — the estimator's schema
@@ -617,6 +618,10 @@ app.post(
 );
 
 /* ── Static site ──────────────────────────────────────────────────────────────── */
+
+const pilot = quotePilot(process.env.NINO_PILOT_KEY);
+app.get('/api/quote-pilot', pilot);
+app.post('/api/quote-pilot', rateLimit({ key: 'tv-quote-pilot', max: 30, windowMs: 60000 }), pilot);
 
 app.get('/api/health', (_req, res) => {
   res.json({

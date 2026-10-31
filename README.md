@@ -119,3 +119,7 @@ completed NinoRepair jobs:
 - Wall mounting: [Anete Lusina / Pexels](https://www.pexels.com/photo/faceless-man-putting-decoration-on-wall-while-using-hammer-4792530/)
 - Measuring: [Ksenia Chernaya / Pexels](https://www.pexels.com/photo/crop-man-measuring-wooden-board-in-room-5691673/)
 - Punch-list monster: adapted from the project owner’s existing A305X shop avatar.
+
+## ScanWonder quote-request pilot
+
+The TV mounting page tests “Contact us” against “Request a repair quote” on an SMS button. Each version opens the same editable draft. Only the owner can confirm a received request using its random NR reference. The relay forwards only that reference and is configured by the server-only `NINO_PILOT_KEY`. Missing measurement, privacy signals and the November 29, 2026 cutoff leave the ordinary text link available. The report and the receipt-entry controls are in the [private ScanWonder owner view](https://scanwonder.captainnemo007.chatgpt.site/admin#quote-pilot).
