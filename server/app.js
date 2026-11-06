@@ -10,6 +10,7 @@ import express from 'express';
 import { quotePilot } from './quote-pilot.js';
 import multer from 'multer';
 import nodemailer from 'nodemailer';
+import { sendOwnerEmail } from './email-delivery.js';
 // zod/v4 (shipped inside zod 3.25) for z.toJSONSchema — the estimator's schema
 // is declared once and used both to constrain Gemini and to validate its reply.
 import { z } from 'zod/v4';
@@ -466,7 +467,7 @@ const LEAD_SINKS = [
 ].filter(Boolean);
 
 const LEAD_TO = () => process.env.LEAD_TO || BUSINESS.email;
-const FROM = () => `"NinoRepair Website" <${process.env.SMTP_USER}>`;
+const FROM = () => process.env.SMTP_FROM || `"NinoRepair Website" <${process.env.SMTP_USER}>`;
 const usd = (n) => `$${Math.round(Number(n) || 0).toLocaleString('en-US')}`;
 const block = (title, items) =>
   Array.isArray(items) && items.length
@@ -524,7 +525,7 @@ async function emailEstimate({ ref, estimate: e, description, city, propertyType
     .join('\n');
 
   try {
-    const receipt = await mailer.sendMail({
+    await sendOwnerEmail(mailer, {
       from: FROM(),
       to: LEAD_TO(),
       subject: `[${ref}] ${e.jobTitle} — ${range}${city ? ` (${city})` : ''}`,
@@ -535,7 +536,6 @@ async function emailEstimate({ ref, estimate: e, description, city, propertyType
         contentType: file.mimetype,
       })),
     });
-    if (!receipt.accepted?.length) return 'failed';
     console.log(`[estimate] ${ref} emailed to ${LEAD_TO()} with ${photos.length} photo(s)`);
     return 'accepted';
   } catch (err) {
@@ -580,7 +580,7 @@ app.post(
 
     if (mailer) {
       try {
-        await mailer.sendMail({
+        await sendOwnerEmail(mailer, {
           from: FROM(),
           to: LEAD_TO(),
           replyTo: lead.email || undefined,
