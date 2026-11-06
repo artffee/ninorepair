@@ -917,3 +917,12 @@ body {
 .svc-more-c { display: block; margin: 14px auto 0; text-align: center; }
 .chips a { color: inherit; }
 .chips a:hover { color: var(--orange, #ff7433); }
+
+/* Answers stay visible without JavaScript and reuse the site typography. */
+.quick-answers { background: #f5f8fc; }
+.home-faq { max-width: 880px; border-top: 1px solid rgba(8,42,87,.18); }
+.home-faq details { border-bottom: 1px solid rgba(8,42,87,.18); }
+.home-faq summary { min-height: 48px; padding: 20px 4px; cursor: pointer; font-weight: 800; color: #082a57; }
+.home-faq details p { max-width: 72ch; padding: 0 4px 22px; margin: 0; line-height: 1.7; color: #42536a; }
+.quick-links { display: flex; flex-wrap: wrap; gap: 12px 24px; margin-top: 24px; }
+.quick-links a { display: inline-flex; align-items: center; min-height: 44px; font-weight: 800; color: #164fb2; }

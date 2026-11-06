@@ -27,6 +27,14 @@ test('serverless without email advertises unavailable delivery and never accepts
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}',
     });
     assert.equal(invalid.status, 400);
+    // Optional attribution must not be mandatory or accept arbitrary content.
+    for (const source of ['ChatGPT', '', 'unrecognized injected value']) {
+      const r = await fetch(`${base}/api/lead`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: 'LOCAL QA ONLY', phone: '2025550100', source }),
+      });
+      assert.equal(r.status, source === 'unrecognized injected value' ? 400 : 502);
+    }
   } finally {
     await new Promise(resolve => server.close(resolve));
   }

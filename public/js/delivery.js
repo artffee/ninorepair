@@ -1,12 +1,15 @@
 /* Keep contact usable when hosted email is not configured. No request is sent
  * by this fallback: customers review the text and send it in their own app. */
 (() => {
-  let unavailable = false;
-  const explanation = 'Online sending is unavailable. Prepare a text below, then send it from your messaging app, or call (954) 508-0246.';
+  // Default to a usable draft while delivery is unknown or the health request fails.
+  let unavailable = true;
+  const explanation = 'Prepare your request, then review and send it from your messaging app, or call (954) 508-0246. Nothing is sent automatically.';
   function labelForms() {
     for (const form of document.querySelectorAll('#lead-form, #res-lead')) {
       const label = form.querySelector('button[type="submit"] .btn-label');
-      if (label && label.textContent !== 'Prepare text to Nino') label.textContent = 'Prepare text to Nino';
+      const title = unavailable ? 'Prepare text to Nino' : 'Send request to Nino';
+      if (label && label.textContent !== title) label.textContent = title;
+      if (!unavailable) { form.querySelector('.delivery-note')?.remove(); continue; }
       if (!form.querySelector('.delivery-note')) {
         const note = document.createElement('p');
         note.className = 'delivery-note res-fine';
@@ -15,12 +18,13 @@
       }
     }
   }
+  labelForms();
+  const out = document.querySelector('#est-out');
+  if (out) new MutationObserver(labelForms).observe(out, { childList: true, subtree: true });
   fetch('/api/health', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(data => {
-    if (data?.contactDelivery !== false) return;
-    unavailable = true;
+    if (data?.contactDelivery !== true) return;
+    unavailable = false;
     labelForms();
-    const out = document.querySelector('#est-out');
-    if (out) new MutationObserver(labelForms).observe(out, { childList: true, subtree: true });
   }).catch(() => {});
   document.addEventListener('submit', event => {
     const form = event.target;
@@ -38,6 +42,7 @@
     if (value('l-website')) return;
     const message = [ 'Hi Nino, I would like help with a repair.', `Name: ${name}`, `Phone: ${phone}`,
       value('l-city') && `City: ${value('l-city')}`, value('l-service'), value('l-msg'),
+      value('l-source') && `Found via: ${value('l-source')}`,
       form.id === 'res-lead' && document.querySelector('.res-title')?.textContent,
       form.id === 'res-lead' && document.querySelector('.res-price')?.textContent.trim()
     ].filter(Boolean).join('\n');

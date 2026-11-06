@@ -438,6 +438,7 @@ const LeadSchema = z.object({
   email: z.string().max(160).optional().or(z.literal('')),
   city: z.string().max(80).optional().or(z.literal('')),
   service: z.string().max(120).optional().or(z.literal('')),
+  source: z.enum(['', 'Google Search', 'Google Maps', 'ChatGPT', 'Gemini', 'Perplexity', 'Other AI assistant', 'Social media', 'Friend or repeat customer', 'Other']).optional(),
   message: z.string().max(3000).optional().or(z.literal('')),
   // Set when the lead comes from the estimator's follow-up form, so the email
   // subject can point at the estimate already sitting in the inbox.
@@ -593,6 +594,7 @@ app.post(
             `Email:   ${lead.email || '—'}`,
             `City:    ${lead.city || '—'}`,
             `Service: ${lead.service || '—'}`,
+            `Found via (self-reported): ${lead.source || 'Not specified'}`,
             '',
             lead.message || '(no message)',
             '',
