@@ -123,3 +123,13 @@ completed NinoRepair jobs:
 ## ScanWonder quote-request pilot
 
 The TV mounting page tests “Contact us” against “Request a repair quote” on an SMS button. Each version opens the same editable draft. Only the owner can confirm a received request using its random NR reference. The relay forwards only that reference and is configured by the server-only `NINO_PILOT_KEY`. Missing measurement, privacy signals and the November 29, 2026 cutoff leave the ordinary text link available. The report and the receipt-entry controls are in the [private ScanWonder owner view](https://scanwonder.captainnemo007.chatgpt.site/admin#quote-pilot).
+
+
+## Discovery and attribution audit
+
+The November 6 ScanWonder pilot adds clear homepage service answers, optional
+self-reported discovery sources on contact forms, and a text-draft fallback
+that remains available when the delivery health check fails. This extends the
+existing quote-label test without changing its variants or marking clicks as
+received requests. See [baseline, measurement rules and verification](docs/scanwonder-nino-pilot.md).
+Historical visitor totals are unavailable because Vercel Web Analytics is not enabled.

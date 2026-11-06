@@ -50,6 +50,23 @@ const access = dollars(PRICE_BOOK.match(/Harbor Beach, Hillsboro\): add[^\n]+/)[
 const essential = dollars(PRICE_BOOK.split('\n').find(line => line.includes('Essential —')))[0];
 const pro = dollars(PRICE_BOOK.split('\n').find(line => line.includes('Pro —')))[0];
 const minimumQuestion = 'How do minimum charges and materials work?';
+
+test('homepage answers agree with the price book and their structured copy', () => {
+  const html = read('public/index.html');
+  const schemas = [...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map(m => JSON.parse(m[1]));
+  const faq = schemas.find(s => s['@type'] === 'FAQPage');
+  const visible = [...html.matchAll(/<details><summary>(.*?)<\/summary><p>(.*?)<\/p><\/details>/g)]
+    .map(m => ({ question: text(m[1]), answer: text(m[2]) }));
+  assert.deepEqual(visible, faq.mainEntity.map(q => ({ question: q.name, answer: q.acceptedAnswer.text })));
+  const costs = visible.find(q => q.question === 'What do common repairs cost?').answer;
+  assert.ok(costs.includes(`32–55 inch screen starts at ${tv}`));
+  assert.ok(costs.includes(`furniture assembly starts at ${assembly} per item`));
+  assert.ok(costs.includes(`patches under 6 inches start at ${patch}`));
+  const fees = visible.find(q => q.question === 'Is there a minimum charge or trip fee?').answer;
+  assert.ok(fees.includes(`${hourly}/hour with a one-hour minimum`));
+  assert.ok(fees.includes(`${trip} trip/diagnostic fee is waived`));
+  assert.equal(schemas[0]['@id'], 'https://ninorepair.com/#business');
+});
 const minimumClaims = [
   'per-panel or per-opening rates are subject to any stated visit minimum',
   `Hourly work is ${hourly}/hour with a one-hour minimum`,

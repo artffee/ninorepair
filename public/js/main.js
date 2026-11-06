@@ -497,6 +497,7 @@
       email:   $('#l-email').value.trim(),
       city:    $('#l-city').value.trim(),
       service: $('#l-service').value,
+      source:  $('#l-source')?.value || '',
       message: $('#l-msg').value.trim(),
       website: $('#l-website').value,
     };
@@ -531,7 +532,7 @@
       }
 
       lead.reset();
-      say(`Got it — Nino will text you back within the hour during working hours. Anything urgent, call ${PHONE}.`, 'ok');
+      say(`Your request was received. Nino will follow up to confirm availability and scope; a visit is not booked yet. Anything urgent, call ${PHONE}.`, 'ok');
     } catch {
       say(`Could not reach the server. Call or text ${PHONE} and it is handled.`, 'bad');
     } finally {
