@@ -101,4 +101,25 @@ Reference guidance:
 
 ## Release
 
-Pending verification of the new production deployment.
+Published November 6, 2026, about 9:38 a.m. EST.
+
+- Merged PR: https://github.com/artffee/ninorepair/pull/4
+- Production source commit: `d5810ee324a444a90c15bad7a2c4f08d7cc2e3ba`
+- Vercel deployment: `dpl_HmNWzWxY6WfmcFgQKJByBrG8JhCf`, READY, assigned to
+  `ninorepair.com` and `www.ninorepair.com`.
+- Live browser confirmed the new title, FAQ section and starting prices; the
+  optional source list includes Google Search, Maps, ChatGPT, Gemini and
+  Perplexity. A synthetic browser-only draft included `Found via: ChatGPT` and
+  displayed `Not sent yet`. No SMS, email, call, booking or AI request was sent.
+- At the available 1000px viewport, no overflow, clipped FAQs or control overlap
+  was observed. The browser could not resize, so mobile visual QA remains
+  unverified. The TV test page was not visited during browser QA to avoid
+  contaminating the enrollment count.
+- Live health still reports `contactDelivery:false`; email activation is not
+  part of this release. General Web Analytics remains disabled.
+- A one-time results review and case-study draft is scheduled for the morning
+  of November 30, 2026, America/New_York, after the existing test closes. Sparse
+  results must be reported as inconclusive, not converted into marketing claims.
+
+The release notes are a documentation-only follow-up to the deployed source.
+
