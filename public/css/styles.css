@@ -420,6 +420,7 @@ h1, h2, h3, h4 {
 .hdr-cta .btn { min-height: 44px; padding: 11px 18px; font-size: 14.5px; }
 
 .burger {
+  flex: 0 0 44px;
   display: none;
   place-items: center;
   gap: 5px;
@@ -1862,10 +1863,10 @@ h1, h2, h3, h4 {
   .chat-fab svg { width: 23px; height: 23px; }
 }
 
-/* Below 380px the wordmark, the phone number and the burger cannot share a row
+/* On narrow phones the wordmark, the phone number and the burger cannot share a row
    without pushing the burger — the only way into the nav — off screen. The mark
    alone carries the brand at this width. */
-@media (max-width: 380px) {
+@media (max-width: 460px) {
   .brand-txt { display: none; }
   .hdr-in { gap: 8px; }
   .hdr-cta .btn { padding: 10px 13px; font-size: 13px; }

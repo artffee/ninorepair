@@ -11,7 +11,7 @@
   const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
   const PHONE      = '(954) 508-0246';
-  const PHONE_HREF = 'tel:+19545080246';
+  const SMS_HREF = 'sms:+19545080246';
 
   /* Reveals hide themselves only once we know JS is running, so a failed script
      leaves a fully readable page instead of a blank one. */
@@ -265,7 +265,7 @@
     out.innerHTML =
       `<div class="est-err">
          <p>${esc(message)}</p>
-         <a class="btn btn-amber" href="${PHONE_HREF}">Text Nino instead · ${PHONE}</a>
+         <a class="btn btn-amber" href="${SMS_HREF}">Text Nino instead · ${PHONE}</a>
        </div>`;
   }
 
@@ -336,7 +336,7 @@
                 <p class="res-fine">${esc(est.confidenceReason)}</p></div>`
            : ''}
 
-         <form class="res-lead" id="res-lead" novalidate>
+         <form class="res-lead" id="res-lead" data-estimate-ref="${esc(lastRef)}" novalidate>
            <p class="res-lead-t">Want Nino to confirm this and book it?</p>
            <div class="res-lead-row">
              <input id="rl-name" type="text" placeholder="Your name" maxlength="120"
@@ -351,7 +351,7 @@
          </form>
 
          <div class="res-cta">
-           <a class="btn btn-outline" href="${PHONE_HREF}">Or text the photos to Nino</a>
+           <a class="btn btn-outline" href="${SMS_HREF}">Or text the photos to Nino</a>
          </div>
          <p class="res-fine">
            ${lastRef ? `Reference ${esc(lastRef)} · ` : ''}Ballpark from photos only.
@@ -363,9 +363,8 @@
     out.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'nearest' });
   }
 
-  /* The estimate itself already reached Nino by email. This is the customer
-     asking him to act on it, so it goes through /api/lead — same validation,
-     same honeypot-free path, same durable-sink guarantee as the contact form. */
+  /* Estimate delivery can be unavailable. Include the estimate context in the
+     follow-up so the request stands on its own. */
   async function sendFollowUp(e) {
     e.preventDefault();
 
@@ -406,8 +405,8 @@
           message: [
             `From the photo estimator${lastRef ? ` (${lastRef})` : ''}.`,
             `Job: ${est.jobTitle || '—'} · Ballpark: ${range}`,
-            desc && `She described it as: ${desc}`,
-            'She asked for a call back to confirm and book.',
+            desc && `Customer description: ${desc}`,
+            'Customer requested a call back to discuss availability and scope.',
           ]
             .filter(Boolean)
             .join('\n')
@@ -422,7 +421,7 @@
       }
 
       form.classList.add('is-sent');
-      say(`Got it, ${name.split(' ')[0]} — Nino has your estimate and will text you to confirm.`, 'ok');
+      say('Your request was accepted for delivery to Nino. He will follow up to confirm availability and scope; a visit is not booked yet.', 'ok');
     } catch {
       say(`Could not reach the server. Call or text ${PHONE} and it is handled.`, 'bad');
     } finally {

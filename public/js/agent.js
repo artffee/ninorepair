@@ -27,7 +27,7 @@
   const GREETING =
     "Hey — I'm Nino's digital front desk. Tell me what needs fixing and I'll give you a " +
     'ballpark on the spot. Photos get you a tighter number: use the estimator on ' +
-    `this page, or text them to **${PHONE}**.`;
+    `this page, or call **${PHONE}** to discuss the job.`;
 
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
