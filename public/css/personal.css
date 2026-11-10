@@ -700,6 +700,9 @@ body {
     var(--navy);
 }
 
+.sec-contact .contact-copy h2 { color: #fff; }
+.sec-contact .contact-copy .sec-sub { color: #dce6f2; }
+
 .sec-contact .eyebrow {
   background: var(--sun);
   border-color: var(--sun);
