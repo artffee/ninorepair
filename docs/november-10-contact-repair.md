@@ -11,6 +11,8 @@ Reviewed ninorepair.com/#airbnb against main ecb213d.
 - Prepared text drafts retain the optional email and estimate reference, city, original description and estimate summary. Editing form fields removes stale drafts until prepared again.
 - Estimate follow-up confirmation describes delivery and pending scheduling accurately.
 
+- Versioned the changed CSS and JavaScript URLs on every page after production verification exposed four-hour browser caching of the old assets.
+
 ## Validation
 
 - 49 Node tests pass, including draft context preservation, service selection and stale-draft invalidation. Existing pricing, delivery and quote-pilot tests pass.
