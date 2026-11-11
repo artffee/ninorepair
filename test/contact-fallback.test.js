@@ -105,3 +105,22 @@ test('editing request details removes the stale draft until it is prepared again
     assert.doesNotMatch(status.children[2].value, /not executable/);
   }
 });
+
+
+test('a failed online send offers the reviewed SMS draft and prevents automatic retries', async () => {
+  const { callbacks, form, status, label, requests, submit } = await prepare('ready');
+  callbacks['nino:delivery-fallback']({ detail: { form, unconfirmed: true } });
+  assert.equal(label.textContent, 'Prepare text to Nino');
+  assert.match(status.children[0].textContent, /could not be confirmed/);
+  assert.match(status.children[0].textContent, /delayed email may still arrive/);
+  assert.match(status.children[2].value, /Email: qa@example.com/);
+  submit();
+  assert.deepEqual(requests, ['/api/health']);
+  assert.match(status.children[0].textContent, /could not be confirmed/);
+});
+
+test('a disabled server response prepares an explicitly unsent draft', async () => {
+  const { callbacks, form, status } = await prepare('ready');
+  callbacks['nino:delivery-fallback']({ detail: { form, unconfirmed: false } });
+  assert.match(status.children[0].textContent, /Not sent yet/);
+});

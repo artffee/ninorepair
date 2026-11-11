@@ -3,6 +3,7 @@
 (() => {
   // Carry the visitor's chosen service into the form, while retaining their details.
   const drafted = new WeakSet();
+  const failedForms = new WeakMap();
   function clearDraft(form) {
     if (!form || !drafted.has(form)) return;
     form.querySelector('[role="status"]')?.replaceChildren();
@@ -26,15 +27,17 @@
   function labelForms() {
     for (const form of document.querySelectorAll('#lead-form, #res-lead')) {
       const label = form.querySelector('button[type="submit"] .btn-label');
-      const title = unavailable ? 'Prepare text to Nino' : 'Send request to Nino';
+      const fallback = unavailable || failedForms.has(form);
+      const title = fallback ? 'Prepare text to Nino' : 'Send request to Nino';
       if (label && label.textContent !== title) label.textContent = title;
-      if (!unavailable) { form.querySelector('.delivery-note')?.remove(); continue; }
-      if (!form.querySelector('.delivery-note')) {
-        const note = document.createElement('p');
+      let note = form.querySelector('.delivery-note');
+      if (!note) {
+        note = document.createElement('p');
         note.className = 'delivery-note res-fine';
-        note.textContent = explanation;
         form.prepend(note);
       }
+      const noteText = failedForms.get(form) ? 'Email acceptance is unconfirmed. A delayed email may still arrive. You can review and send a text instead, or call (954) 508-0246.' : fallback ? explanation : 'Send your contact details and job description to Nino through our email provider so he can respond. Please leave out payment details, access codes and other sensitive information.';
+      if (note.textContent !== noteText) note.textContent = noteText;
     }
   }
   labelForms();
@@ -45,11 +48,7 @@
     unavailable = false;
     labelForms();
   }).catch(() => {});
-  document.addEventListener('submit', event => {
-    const form = event.target;
-    if (!unavailable || !form.matches('#lead-form, #res-lead')) return;
-    event.preventDefault();
-    event.stopImmediatePropagation();
+  function prepareDraft(form, unconfirmed = false) {
     const value = id => form.querySelector('#' + id)?.value.trim() || '';
     const name = value('l-name') || value('rl-name');
     const phone = value('l-phone') || value('rl-phone');
@@ -71,7 +70,9 @@
     ].filter(Boolean).join('\n');
     status.replaceChildren();
     const note = document.createElement('p');
-    note.textContent = 'Not sent yet. Open the text message and tap Send. If your device cannot send texts, call Nino and use the details below.';
+    note.textContent = unconfirmed
+      ? 'Email acceptance could not be confirmed; a delayed email may still arrive. This text has not been sent. Review it, then tap Send in your messaging app, or call Nino.'
+      : 'Not sent yet. Open the text message and tap Send. If your device cannot send texts, call Nino and use the details below.';
     const link = document.createElement('a');
     link.className = 'btn btn-amber';
     link.href = 'sms:+19545080246?body=' + encodeURIComponent(message);
@@ -84,5 +85,19 @@
     details.value = message;
     status.append(note, link, details);
     drafted.add(form);
+  }
+  document.addEventListener('nino:delivery-fallback', event => {
+    const { form, unconfirmed = true } = event.detail;
+    if (!form?.matches('#lead-form, #res-lead')) return;
+    failedForms.set(form, unconfirmed);
+    labelForms();
+    prepareDraft(form, unconfirmed);
+  });
+  document.addEventListener('submit', event => {
+    const form = event.target;
+    if ((!unavailable && !failedForms.has(form)) || !form.matches('#lead-form, #res-lead')) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    prepareDraft(form, failedForms.get(form) || false);
   }, true);
 })();

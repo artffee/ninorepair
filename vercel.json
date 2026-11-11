@@ -23,5 +23,8 @@
       "source": "/api/chat",
       "headers": [{ "key": "Cache-Control", "value": "no-cache, no-transform" }]
     }
-  ]
+  ],
+  "git": {
+    "deploymentEnabled": { "review/automatic-contact-delivery": false }
+  }
 }

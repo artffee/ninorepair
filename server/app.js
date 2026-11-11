@@ -1,7 +1,6 @@
 import 'dotenv/config';
 
 import crypto from 'node:crypto';
-import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -10,7 +9,8 @@ import express from 'express';
 import { quotePilot } from './quote-pilot.js';
 import multer from 'multer';
 import nodemailer from 'nodemailer';
-import { sendOwnerEmail } from './email-delivery.js';
+import { sendOwnerEmail, smtpConfiguration } from './email-delivery.js';
+import { leadHandler } from './contact-delivery.js';
 // zod/v4 (shipped inside zod 3.25) for z.toJSONSchema — the estimator's schema
 // is declared once and used both to constrain Gemini and to validate its reply.
 import { z } from 'zod/v4';
@@ -24,7 +24,6 @@ import {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, '..');
 const PUBLIC_DIR = path.join(ROOT, 'public');
-const DATA_DIR = path.join(ROOT, 'data');
 
 
 /* Google AI Studio free tier. Both jobs run on 2.5 Flash: it is multimodal, it
@@ -432,62 +431,21 @@ app.post(
 
 /* ── /api/lead — contact form ─────────────────────────────────────────────────── */
 
-const LeadSchema = z.object({
-  name: z.string().min(1).max(120),
-  phone: z.string().min(7).max(40),
-  email: z.string().max(160).optional().or(z.literal('')),
-  city: z.string().max(80).optional().or(z.literal('')),
-  service: z.string().max(120).optional().or(z.literal('')),
-  source: z.enum(['', 'Google Search', 'Google Maps', 'ChatGPT', 'Gemini', 'Perplexity', 'Other AI assistant', 'Social media', 'Friend or repeat customer', 'Other']).optional(),
-  message: z.string().max(3000).optional().or(z.literal('')),
-  // Set when the lead comes from the estimator's follow-up form, so the email
-  // subject can point at the estimate already sitting in the inbox.
-  ref: z.string().max(24).optional().or(z.literal('')),
-  // Honeypot: bots fill every field they find, humans never see this one.
-  website: z.string().max(0).optional().or(z.literal('')),
-});
+const smtp = smtpConfiguration(process.env);
+const mailer = smtp ? nodemailer.createTransport(smtp.transport) : null;
+const LEAD_TO = () => smtp?.to;
+const FROM = () => smtp?.from;
 
-let mailer = null;
-if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
-  mailer = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT) || 587,
-    secure: Number(process.env.SMTP_PORT) === 465,
-    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
-  });
-}
-
-/* Where a lead can actually survive. On Vercel the filesystem is read-only and
- * /tmp dies with the invocation, so the JSONL file is not a sink there — email
- * is the only one. A lead is the whole point of the site, so if no sink exists
- * the form refuses honestly rather than returning ok and dropping it. */
-const SERVERLESS = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
-const LEAD_SINKS = [
-  !SERVERLESS && 'data/leads.jsonl',
-  mailer && `email to ${process.env.LEAD_TO || BUSINESS.email}`,
-].filter(Boolean);
-
-const LEAD_TO = () => process.env.LEAD_TO || BUSINESS.email;
-const FROM = () => process.env.SMTP_FROM || `"NinoRepair Website" <${process.env.SMTP_USER}>`;
 const usd = (n) => `$${Math.round(Number(n) || 0).toLocaleString('en-US')}`;
 const block = (title, items) =>
   Array.isArray(items) && items.length
     ? `${title}\n${items.map((s) => `  - ${s}`).join('\n')}\n`
     : '';
 
-/**
- * Every estimate is emailed to Nino with the photos attached, whether or not the
- * customer goes on to leave her name. Without this an estimate that does not
- * convert leaves no trace at all — he cannot follow up, and he cannot see what
- * people are actually asking about.
- *
- * Declared as a function so the estimate route above can call it despite being
- * defined earlier in the file; `mailer` is initialised by the time any request
- * arrives. Never throws.
- */
+/** Photo-estimate notifications need a separate explicit activation. Enabling
+ * contact requests alone must not start emailing every uploaded photo. */
 async function emailEstimate({ ref, estimate: e, description, city, propertyType, urgency, photos }) {
-  if (!mailer) {
-    console.log(`[estimate] ${ref} not emailed — SMTP is not configured`);
+  if (!mailer || process.env.ESTIMATE_EMAIL_ENABLED !== 'true') {
     return 'unavailable';
   }
 
@@ -529,95 +487,35 @@ async function emailEstimate({ ref, estimate: e, description, city, propertyType
     await sendOwnerEmail(mailer, {
       from: FROM(),
       to: LEAD_TO(),
-      subject: `[${ref}] ${e.jobTitle} — ${range}${city ? ` (${city})` : ''}`,
+      subject: `[${ref}] ${e.jobTitle} — ${range}${city ? ` (${city})` : ''}`.replace(/[\r\n]/g, ' '),
       text: body,
       attachments: photos.map((file, i) => ({
-        filename: file.originalname || `photo-${i + 1}.jpg`,
+        filename: `photo-${i + 1}.${({ "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/gif": "gif" })[file.mimetype] || "bin"}`,
         content: file.buffer,
         contentType: file.mimetype,
       })),
     });
-    console.log(`[estimate] ${ref} emailed to ${LEAD_TO()} with ${photos.length} photo(s)`);
+    console.log('[estimate] smtp_accepted');
     return 'accepted';
-  } catch (err) {
-    console.error(`[estimate] ${ref} email failed:`, err.message);
+  } catch {
+    console.warn('[estimate] acceptance_unconfirmed');
     return 'failed';
   }
 }
 
 app.post(
   '/api/lead',
+  (_req, res, next) => { res.set('Cache-Control', 'private, no-store'); next(); },
   rateLimit({ key: 'lead', max: 10, windowMs: 60 * 60 * 1000 }),
-  async (req, res) => {
-    const parsed = LeadSchema.safeParse(req.body);
-    if (!parsed.success) {
-      res.status(400).json({ error: 'Please add your name and a phone number.' });
-      return;
-    }
-    if (parsed.data.website) {
-      // Honeypot tripped — accept silently so the bot doesn't retry.
-      res.json({ ok: true });
-      return;
-    }
-
-    const lead = { ...parsed.data, receivedAt: new Date().toISOString(), ip: req.ip };
-    delete lead.website;
-
-    // Last resort, and the reason this line exists: if every sink below fails,
-    // the lead is at least in the runtime log where it can be read back.
-    console.log('[lead]', JSON.stringify(lead));
-
-    let saved = false;
-
-    if (!SERVERLESS) {
-      try {
-        fs.mkdirSync(DATA_DIR, { recursive: true });
-        fs.appendFileSync(path.join(DATA_DIR, 'leads.jsonl'), `${JSON.stringify(lead)}\n`);
-        saved = true;
-      } catch (err) {
-        console.error('[lead] could not persist:', err);
-      }
-    }
-
-    if (mailer) {
-      try {
-        await sendOwnerEmail(mailer, {
-          from: FROM(),
-          to: LEAD_TO(),
-          replyTo: lead.email || undefined,
-          subject: lead.ref
-            ? `[${lead.ref}] Wants a call back — ${lead.name}${lead.city ? ` (${lead.city})` : ''}`
-            : `New job request — ${lead.name}${lead.city ? ` (${lead.city})` : ''}`,
-          text: [
-            `Name:    ${lead.name}`,
-            `Phone:   ${lead.phone}`,
-            `Email:   ${lead.email || '—'}`,
-            `City:    ${lead.city || '—'}`,
-            `Service: ${lead.service || '—'}`,
-            `Found via (self-reported): ${lead.source || 'Not specified'}`,
-            '',
-            lead.message || '(no message)',
-            '',
-            `Received ${lead.receivedAt}`,
-          ].join('\n'),
-        });
-        saved = true;
-      } catch (err) {
-        console.error('[lead] email failed:', err);
-      }
-    }
-
-    if (!saved) {
-      // Never claim success for a lead that went nowhere.
-      res.status(502).json({
-        error: `Our form is not reaching us right now — please call or text Nino at ${BUSINESS.phone} and it is handled.`,
-      });
-      return;
-    }
-
-    res.json({ ok: true });
-  },
+  leadHandler({ mailer, from: smtp?.from, to: smtp?.to }),
 );
+
+// Do not return parser diagnostics or echoed customer content for bad JSON.
+app.use('/api/lead', (err, _req, res, next) => {
+  if (!err) return next();
+  res.set('Cache-Control', 'private, no-store');
+  res.status(err.type === 'entity.too.large' ? 413 : 400).json({ error: 'Invalid request. Please check your details or call Nino.' });
+});
 
 /* ── Static site ──────────────────────────────────────────────────────────────── */
 
@@ -626,10 +524,12 @@ app.get('/api/quote-pilot', pilot);
 app.post('/api/quote-pilot', rateLimit({ key: 'tv-quote-pilot', max: 30, windowMs: 60000 }), pilot);
 
 app.get('/api/health', (_req, res) => {
+  res.set('Cache-Control', 'no-store');
   res.json({
     ok: true,
     ai: Boolean(ai),
-    contactDelivery: Boolean(mailer) || !SERVERLESS,
+    contactDelivery: Boolean(mailer),
+    contactDeliveryStatus: mailer ? 'configured' : 'disabled',
     provider: 'google',
     chatModel: CHAT_MODEL,
     visionModel: VISION_MODEL,
@@ -658,5 +558,5 @@ export default app;
 
 export const summary = () => [
   `google · chat: ${CHAT_MODEL}   estimator: ${VISION_MODEL}${ai ? '' : '   (no key — AI offline)'}`,
-  `leads → ${LEAD_SINKS.join(' + ') || 'NO DURABLE SINK — the form will refuse and tell customers to call'}`,
+  `leads → ${mailer ? 'SMTP configured; acceptance checked per request' : 'reviewed SMS fallback (automatic delivery disabled)'}`,
 ];
