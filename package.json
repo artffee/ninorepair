@@ -21,5 +21,9 @@
     "multer": "^2.0.2",
     "nodemailer": "^7.0.9",
     "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "jsdom": "^31.0.0",
+    "playwright": "^1.65.0"
   }
 }

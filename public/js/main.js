@@ -319,7 +319,7 @@
 
          <h3 class="res-title">${esc(est.jobTitle || 'Your job')}</h3>
          ${priceRow}
-         <p class="res-fine" role="status">${delivery === 'accepted' ? 'Your estimate was accepted by the email service for delivery to Nino.' : 'This estimate has not been sent to Nino. Text or call him to discuss the job.'}</p>
+         <p class="res-fine" role="status">${delivery === 'accepted' ? 'Your estimate was accepted by the email service for delivery to Nino; inbox arrival is not yet confirmed.' : delivery === 'failed' ? 'Email acceptance could not be confirmed; a delayed email may still arrive. Text or call Nino to discuss the job.' : 'This estimate has not been sent to Nino. Text or call him to discuss the job.'}</p>
          ${est.summary ? `<p class="res-summary">${esc(est.summary)}</p>` : ''}
 
          ${items
@@ -371,6 +371,7 @@
     const form = $('#res-lead');
     const go = $('#rl-go');
     const msg = $('#rl-msg');
+    if (go.disabled) return;
     const name = $('#rl-name').value.trim();
     const phone = $('#rl-phone').value.trim();
 
@@ -395,6 +396,7 @@
     try {
       const res = await fetch('/api/lead', {
         method: 'POST',
+        signal: AbortSignal.timeout(20000),
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name,
@@ -415,15 +417,19 @@
       });
       const data = await res.json().catch(() => ({}));
 
-      if (!res.ok || !data.ok) {
-        say(data.error || `That did not go through. Call or text ${PHONE}.`, 'bad');
+      if (res.status !== 202 || data.ok !== true || data.delivery !== 'accepted') {
+        if ([400, 403, 415].includes(res.status)) {
+          say(data.error || 'Please check your details.', 'bad');
+        } else {
+          document.dispatchEvent(new CustomEvent('nino:delivery-fallback', { detail: { form: form, unconfirmed: data.delivery !== 'unavailable' } }));
+        }
         return;
       }
 
       form.classList.add('is-sent');
-      say('Your request was accepted for delivery to Nino. He will follow up to confirm availability and scope; a visit is not booked yet.', 'ok');
+      say('Your request was accepted by the email service for delivery to Nino. Inbox arrival is not yet confirmed. He will follow up to confirm availability and scope; a visit is not booked yet.', 'ok');
     } catch {
-      say(`Could not reach the server. Call or text ${PHONE} and it is handled.`, 'bad');
+      document.dispatchEvent(new CustomEvent('nino:delivery-fallback', { detail: { form: form, unconfirmed: true } }));
     } finally {
       busy(go, false);
     }
@@ -490,6 +496,7 @@
   lead.addEventListener('submit', async (e) => {
     e.preventDefault();
 
+    if (leadGo.disabled) return;
     const payload = {
       name:    $('#l-name').value.trim(),
       phone:   $('#l-phone').value.trim(),
@@ -522,18 +529,23 @@
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(20000),
       });
       const data = await res.json().catch(() => ({}));
 
-      if (!res.ok || !data.ok) {
-        say(data.error || `That did not go through. Call or text ${PHONE}.`, 'bad');
+      if (res.status !== 202 || data.ok !== true || data.delivery !== 'accepted') {
+        if ([400, 403, 415].includes(res.status)) {
+          say(data.error || 'Please check your details.', 'bad');
+        } else {
+          document.dispatchEvent(new CustomEvent('nino:delivery-fallback', { detail: { form: lead, unconfirmed: data.delivery !== 'unavailable' } }));
+        }
         return;
       }
 
       lead.reset();
-      say(`Your request was received. Nino will follow up to confirm availability and scope; a visit is not booked yet. Anything urgent, call ${PHONE}.`, 'ok');
+      say(`Your request was accepted by the email service for delivery to Nino. Inbox arrival is not yet confirmed. Nino will follow up to confirm availability and scope; a visit is not booked yet. Anything urgent, call ${PHONE}.`, 'ok');
     } catch {
-      say(`Could not reach the server. Call or text ${PHONE} and it is handled.`, 'bad');
+      document.dispatchEvent(new CustomEvent('nino:delivery-fallback', { detail: { form: lead, unconfirmed: true } }));
     } finally {
       busy(leadGo, false);
     }

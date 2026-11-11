@@ -72,8 +72,8 @@ current automated, responsive, inquiry-flow and production-access results.
 |---|---|
 | `POST /api/chat` | Streams the assistant back as SSE (`event: delta` / `done` / `error`) |
 | `POST /api/estimate` | Multipart, up to 5 photos ≤8 MB. Returns a schema-validated estimate |
-| `POST /api/lead` | Contact form. Appends to `data/leads.jsonl`, emails if SMTP is configured |
-| `GET /api/health` | Key present, provider, models |
+| `POST /api/lead` | Validated contact request. Explicitly enabled SMTP only; 202 means provider acceptance, not inbox delivery |
+| `GET /api/health` | Key present, provider, models, contact configuration (not a delivery probe) |
 
 Both AI routes are rate limited per IP in memory (swap for Redis behind more
 than one instance).
@@ -133,3 +133,13 @@ that remains available when the delivery health check fails. This extends the
 existing quote-label test without changing its variants or marking clicks as
 received requests. See [baseline, measurement rules and verification](docs/scanwonder-nino-pilot.md).
 Historical visitor totals are unavailable because Vercel Web Analytics is not enabled.
+
+
+## Automatic contact delivery — pending approval
+
+See [the configuration and verification review](docs/contact-delivery-review.md).
+Delivery defaults to disabled, and Vercel preview/development deployments cannot
+send. Failed or uncertain sends retain the entered details and offer a reviewed
+SMS draft. Customer details are not logged or written to a local lead file.
+Use `npm test` for deterministic validation; optional browser checks are in
+`scripts/verify-contact-browser.mjs` (Playwright required).
